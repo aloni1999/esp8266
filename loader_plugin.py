@@ -28,6 +28,8 @@ class ESP8266FirmwareMetaData(object):
             struct.unpack(self.HEADER_UNPACK_FORMAT, getBytes(toAddr(fw_start_address), self.HEADER_LEN))
         self.segments = []
 
+        self.entry_point = toAddr(self.entry_point)
+
         segment_start_addr = fw_start_address + self.HEADER_LEN
         for segment_index in range(self.number_of_segments):
             print(segment_start_addr)
@@ -49,9 +51,9 @@ class MemorySegmentInfo(object):
         :param int data_offset_in_binary: The offset of the data in the binary.
         """
         self.name = name
-        self.start_address = start_address
+        self.start_address = toAddr(start_address)
         self.size = size
-        self.data_offset_in_binary = data_offset_in_binary
+        self.data_offset_in_binary = toAddr(data_offset_in_binary)
 
     @classmethod
     def from_program(cls, name, segment_start_address):
@@ -76,8 +78,8 @@ def create_mapped_segments(segment_list):
     mem = currentProgram.getMemory()
     for segment_info in segment_list:
         segment_memory_block = mem.createByteMappedBlock(segment_info.name,
-                                                         toAddr(segment_info.start_address),
-                                                         toAddr(segment_info.data_offset_in_binary),
+                                                         segment_info.start_address,
+                                                         segment_info.data_offset_in_binary,
                                                          segment_info.size)
         segment_memory_block.setWrite(True)
         segment_memory_block.setExecute(True)
@@ -89,10 +91,10 @@ def main():
     """
     bootloader_meta_data = ESP8266FirmwareMetaData(BOOTLOADER_START_ADDRESS, BOOTLOADER_SEGMENTS_NAME)
     create_mapped_segments(bootloader_meta_data.segments)
-    addEntryPoint(toAddr(bootloader_meta_data.entry_point))
+    addEntryPoint(bootloader_meta_data.entry_point)
     firmware_meta_data = ESP8266FirmwareMetaData(FIRMWARE_START_ADDRESS)
     create_mapped_segments(firmware_meta_data.segments)
-    addEntryPoint(toAddr(firmware_meta_data.entry_point))
+    addEntryPoint(firmware_meta_data.entry_point)
 
 
 if __name__ == '__main__':
