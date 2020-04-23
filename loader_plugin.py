@@ -11,8 +11,8 @@ FIRMWARE_START_ADDRESS = 0x1000
 
 
 class ESP8266FirmwareMetaData(object):
-    HEADER_LEN = 4
-    HEADER_UNPACK_FORMAT = "4B"
+    HEADER_LEN = 8
+    HEADER_UNPACK_FORMAT = "<4BI"
 
     def __init__(self, fw_start_address, segments_name=SEGMENTS_DEFAULT_NAME):
         """
@@ -20,15 +20,17 @@ class ESP8266FirmwareMetaData(object):
         :param int fw_start_address: the start of the firmware address.
         :param str segments_name: The name to give to the segments (the final name will be "<name><index>".
         """
-        self.magic_char,\
-        self.number_of_segments,\
-        self.spi_flash_interface, self.memory_info,\
+        self.magic_char, \
+        self.number_of_segments, \
+        self.spi_flash_interface, \
+        self.memory_info, \
         self.entry_point = \
-            struct.unpack(self.HEADER_UNPACK_FORMAT, getBytes(fw_start_address, self.HEADER_LEN))
+            struct.unpack(self.HEADER_UNPACK_FORMAT, getBytes(toAddr(fw_start_address), self.HEADER_LEN))
         self.segments = []
 
-        segment_start_addr = self.HEADER_LEN
+        segment_start_addr = fw_start_address + self.HEADER_LEN
         for segment_index in range(self.number_of_segments):
+            print(segment_start_addr)
             new_segment = MemorySegmentInfo.from_program(segments_name + str(segment_index), segment_start_addr)
             self.segments.append(new_segment)
             segment_start_addr += new_segment.size + MemorySegmentInfo.HEADER_LEN
@@ -36,6 +38,7 @@ class ESP8266FirmwareMetaData(object):
 
 class MemorySegmentInfo(object):
     HEADER_LEN = 8
+    HEADER_UNPACK_FORMAT = "<II"
 
     def __init__(self, name, start_address, size, data_offset_in_binary):
         """
@@ -59,7 +62,8 @@ class MemorySegmentInfo(object):
         :return: Initialized instance.
         :rtype: MemorySegmentInfo
         """
-        mapped_address, segment_size = struct.unpack(">II", getBytes(segment_start_address, cls.HEADER_LEN))
+        mapped_address, segment_size = struct.unpack(cls.HEADER_UNPACK_FORMAT,
+                                                     getBytes(toAddr(segment_start_address), cls.HEADER_LEN))
         return cls(name, mapped_address, segment_size, segment_start_address)
 
 
@@ -75,7 +79,6 @@ def create_mapped_segments(segment_list):
                                   toAddr(segment_info.start_address),
                                   toAddr(segment_info.data_offset_in_binary),
                                   segment_info.size)
-
 
 
 def main():
