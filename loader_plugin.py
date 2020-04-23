@@ -75,10 +75,12 @@ def create_mapped_segments(segment_list):
     """
     mem = currentProgram.getMemory()
     for segment_info in segment_list:
-        mem.createByteMappedBlock(segment_info.name,
-                                  toAddr(segment_info.start_address),
-                                  toAddr(segment_info.data_offset_in_binary),
-                                  segment_info.size)
+        segment_memory_block = mem.createByteMappedBlock(segment_info.name,
+                                                         toAddr(segment_info.start_address),
+                                                         toAddr(segment_info.data_offset_in_binary),
+                                                         segment_info.size)
+        segment_memory_block.setWrite(True)
+        segment_memory_block.setExecute(True)
 
 
 def main():
@@ -87,8 +89,10 @@ def main():
     """
     bootloader_meta_data = ESP8266FirmwareMetaData(BOOTLOADER_START_ADDRESS, BOOTLOADER_SEGMENTS_NAME)
     create_mapped_segments(bootloader_meta_data.segments)
+    addEntryPoint(toAddr(bootloader_meta_data.entry_point))
     firmware_meta_data = ESP8266FirmwareMetaData(FIRMWARE_START_ADDRESS)
     create_mapped_segments(firmware_meta_data.segments)
+    addEntryPoint(toAddr(firmware_meta_data.entry_point))
 
 
 if __name__ == '__main__':
