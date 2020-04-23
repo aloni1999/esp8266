@@ -29,13 +29,18 @@ class ESP8266FirmwareMetaData(object):
         self.segments = []
 
         self.entry_point = toAddr(self.entry_point)
+        self._initialize_segments_list(segments_name, fw_start_address + self.HEADER_LEN)
 
-        segment_start_addr = fw_start_address + self.HEADER_LEN
+    def _initialize_segments_list(self, segments_name, segments_start_address):
+        """
+        Initialize the segments member to contain list of MemorySegmentInfo objects.
+        :param str segments_name: The name to give to the segments (the final name will be "<name><index>".
+        :param int segments_start_address: The address of the first segment in binary.
+        """
         for segment_index in range(self.number_of_segments):
-            print(segment_start_addr)
-            new_segment = MemorySegmentInfo.from_program(segments_name + str(segment_index), segment_start_addr)
+            new_segment = MemorySegmentInfo.from_program(segments_name + str(segment_index), segments_start_address)
             self.segments.append(new_segment)
-            segment_start_addr += new_segment.size + MemorySegmentInfo.HEADER_LEN
+            segments_start_address += new_segment.size + MemorySegmentInfo.HEADER_LEN
 
 
 class MemorySegmentInfo(object):
@@ -85,16 +90,23 @@ def create_mapped_segments(segment_list):
         segment_memory_block.setExecute(True)
 
 
+def map_firmware(offset_in_binary, segment_name):
+    """
+    Create a mapping of a firmware
+    :param int offset_in_binary: The start of the firmware in the binary.
+    :param str segment_name: The name for the segments.
+    """
+    firmware_meta_data = ESP8266FirmwareMetaData(offset_in_binary, segment_name)
+    create_mapped_segments(firmware_meta_data.segments)
+    addEntryPoint(firmware_meta_data.entry_point)
+
+
 def main():
     """
     Map all the segments in the recovered_file_update flash dump.
     """
-    bootloader_meta_data = ESP8266FirmwareMetaData(BOOTLOADER_START_ADDRESS, BOOTLOADER_SEGMENTS_NAME)
-    create_mapped_segments(bootloader_meta_data.segments)
-    addEntryPoint(bootloader_meta_data.entry_point)
-    firmware_meta_data = ESP8266FirmwareMetaData(FIRMWARE_START_ADDRESS)
-    create_mapped_segments(firmware_meta_data.segments)
-    addEntryPoint(firmware_meta_data.entry_point)
+    map_firmware(BOOTLOADER_START_ADDRESS, BOOTLOADER_SEGMENTS_NAME)
+    map_firmware(FIRMWARE_START_ADDRESS, SEGMENTS_DEFAULT_NAME)
 
 
 if __name__ == '__main__':
