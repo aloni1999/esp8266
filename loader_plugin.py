@@ -71,7 +71,7 @@ class MemorySegmentInfo(object):
         """
         mapped_address, segment_size = struct.unpack(cls.HEADER_UNPACK_FORMAT,
                                                      getBytes(toAddr(segment_start_address), cls.HEADER_LEN))
-        return cls(name, mapped_address, segment_size, segment_start_address)
+        return cls(name, mapped_address, segment_size, segment_start_address + cls.HEADER_LEN)
 
 
 def create_mapped_segments(segment_list):
